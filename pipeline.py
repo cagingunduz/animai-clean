@@ -34,7 +34,7 @@ async def run_pipeline(job_id: str, scene: str, dialogue: str, voice_id: str):
         update_job(job_id, "processing", f"Step 3 done.")
 
         # Step 4 — Remove background
-        update_job(job_id, "processing", f"Step 4: Removing background... char_url={char_url}")
+        update_job(job_id, "processing", f"Step 4: Removing background...")
         char_nobg_url = await remove_background(char_url)
         update_job(job_id, "processing", f"Step 4 done. nobg_url={char_nobg_url}")
 
@@ -75,4 +75,3 @@ async def run_pipeline(job_id: str, scene: str, dialogue: str, voice_id: str):
     except Exception as e:
         current_step = job_store.get(job_id, {}).get("step", "unknown")
         update_job(job_id, "failed", f"Failed at: {current_step}", error=str(e))
-        
