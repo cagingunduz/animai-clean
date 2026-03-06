@@ -1,14 +1,8 @@
 import replicate
 import httpx
 import os
-import uuid
-import boto3
 
 REPLICATE_API_TOKEN = os.environ.get("REPLICATE_API_TOKEN")
-R2_ACCOUNT_ID = os.environ.get("R2_ACCOUNT_ID")
-R2_ACCESS_KEY = os.environ.get("R2_ACCESS_KEY")
-R2_SECRET_KEY = os.environ.get("R2_SECRET_KEY")
-R2_BUCKET = os.environ.get("R2_BUCKET", "animai-videos")
 REMOVEBG_API_KEY = os.environ.get("REMOVEBG_API_KEY")
 
 def _extract_url(output) -> str:
@@ -53,7 +47,7 @@ async def generate_background(prompt: str) -> str:
     return _extract_url(output)
 
 async def remove_background(image_url: str) -> str:
-    """Remove background using remove.bg API, upload result to R2."""
+    """Remove background using remove.bg API, upload result to Replicate files API."""
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             "https://api.remove.bg/v1.0/removebg",
@@ -64,21 +58,19 @@ async def remove_background(image_url: str) -> str:
         resp.raise_for_status()
         png_bytes = resp.content
 
-    # Upload to R2
-    s3 = boto3.client(
-        "s3",
-        endpoint_url=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
-        aws_access_key_id=R2_ACCESS_KEY,
-        aws_secret_access_key=R2_SECRET_KEY,
-    )
-    key = f"nobg/{uuid.uuid4()}.png"
-    s3.put_object(Bucket=R2_BUCKET, Key=key, Body=png_bytes, ContentType="image/png")
-    presigned_url = s3.generate_presigned_url(
-        "get_object",
-        Params={"Bucket": R2_BUCKET, "Key": key},
-        ExpiresIn=3600,
-    )
-    return presigned_url
+    # Upload to Replicate files API — returns a public URL usable by other Replicate models
+    async with httpx.AsyncClient() as client:
+        upload_resp = await client.post(
+            "https://api.replicate.com/v1/files",
+            headers={
+                "Authorization": f"Bearer {REPLICATE_API_TOKEN}",
+                "Content-Type": "image/png",
+            },
+            content=png_bytes,
+            timeout=60,
+        )
+        upload_resp.raise_for_status()
+        return upload_resp.json()["urls"]["get"]
 
 async def animate_character(image_url: str) -> str:
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)
