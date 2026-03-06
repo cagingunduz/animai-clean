@@ -22,7 +22,7 @@ async def generate_character_prompt(scene: str) -> str:
                 "content-type": "application/json"
             },
             json={
-                "model": "claude-sonnet-4-20250514",
+                "model": "claude-sonnet-4-5",
                 "max_tokens": 300,
                 "system": SYSTEM_PROMPT,
                 "messages": [{"role": "user", "content": scene}]
@@ -30,6 +30,8 @@ async def generate_character_prompt(scene: str) -> str:
             timeout=30
         )
         data = response.json()
+        if "error" in data:
+            raise Exception(f"Anthropic API error: {data['error']}")
         return data["content"][0]["text"].strip()
 
 async def generate_background_prompt(scene: str) -> str:
@@ -50,7 +52,7 @@ Return ONLY the prompt, nothing else."""
                 "content-type": "application/json"
             },
             json={
-                "model": "claude-sonnet-4-20250514",
+                "model": "claude-sonnet-4-5",
                 "max_tokens": 200,
                 "system": system,
                 "messages": [{"role": "user", "content": scene}]
@@ -58,4 +60,6 @@ Return ONLY the prompt, nothing else."""
             timeout=30
         )
         data = response.json()
+        if "error" in data:
+            raise Exception(f"Anthropic API error: {data['error']}")
         return data["content"][0]["text"].strip()
