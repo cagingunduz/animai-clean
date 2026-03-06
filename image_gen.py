@@ -73,7 +73,12 @@ async def remove_background(image_url: str) -> str:
     )
     key = f"nobg/{uuid.uuid4()}.png"
     s3.put_object(Bucket=R2_BUCKET, Key=key, Body=png_bytes, ContentType="image/png")
-    return f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com/{R2_BUCKET}/{key}"
+    presigned_url = s3.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": R2_BUCKET, "Key": key},
+        ExpiresIn=3600,
+    )
+    return presigned_url
 
 async def animate_character(image_url: str) -> str:
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)
