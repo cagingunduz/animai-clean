@@ -73,5 +73,7 @@ async def run_pipeline(job_id: str, scene: str, dialogue: str, voice_id: str):
         update_job(job_id, "completed", "Done!", video_url=video_url)
 
     except Exception as e:
+        import traceback
         current_step = job_store.get(job_id, {}).get("step", "unknown")
-        update_job(job_id, "failed", f"Failed at: {current_step}", error=str(e))
+        error_detail = f"{repr(e)}\n{traceback.format_exc()}"
+        update_job(job_id, "failed", f"Failed at: {current_step}", error=error_detail)
