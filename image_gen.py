@@ -4,6 +4,17 @@ import os
 
 REPLICATE_API_TOKEN = os.environ.get("REPLICATE_API_TOKEN")
 
+def _extract_url(output) -> str:
+    """Extract plain URL string from Replicate output (FileOutput, list, or str)."""
+    if output is None:
+        raise ValueError("Replicate returned None output")
+    if isinstance(output, list):
+        output = output[0]
+    # FileOutput has a .url attribute
+    if hasattr(output, 'url'):
+        return str(output.url)
+    return str(output)
+
 async def generate_character(prompt: str) -> str:
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)
     output = client.run(
@@ -17,7 +28,7 @@ async def generate_character(prompt: str) -> str:
             "output_format": "png"
         }
     )
-    return str(output)
+    return _extract_url(output)
 
 async def generate_background(prompt: str) -> str:
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)
@@ -32,15 +43,15 @@ async def generate_background(prompt: str) -> str:
             "output_format": "png"
         }
     )
-    return str(output)
+    return _extract_url(output)
 
 async def remove_background(image_url: str) -> str:
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)
     output = client.run(
         "lucataco/remove-bg",
-        input={"image": image_url, "output_type": "rgba"}
+        input={"image": image_url}
     )
-    return str(output)
+    return _extract_url(output)
 
 async def animate_character(image_url: str) -> str:
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)
@@ -53,7 +64,7 @@ async def animate_character(image_url: str) -> str:
             "cfg_scale": 0.5
         }
     )
-    return str(output)
+    return _extract_url(output)
 
 async def lip_sync(video_url: str, audio_url: str) -> str:
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)
@@ -64,7 +75,7 @@ async def lip_sync(video_url: str, audio_url: str) -> str:
             "audio": audio_url
         }
     )
-    return str(output)
+    return _extract_url(output)
 
 async def download_file(url: str) -> bytes:
     async with httpx.AsyncClient() as client:
