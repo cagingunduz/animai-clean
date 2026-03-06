@@ -29,8 +29,8 @@ async def generate_background(prompt: str) -> str:
         "black-forest-labs/flux-1.1-pro",
         input={
             "prompt": prompt,
-            "width": 1920,
-            "height": 1080,
+            "width": 1440,
+            "height": 832,
             "guidance_scale": 3.5,
             "num_inference_steps": 28,
             "output_format": "png"
