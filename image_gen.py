@@ -80,7 +80,7 @@ async def animate_character(image_url: str) -> str:
     output = client.run(
         "kwaivgi/kling-v2.1",
         input={
-            "image": image_url,
+            "start_image": image_url,
             "prompt": "character talking, subtle body movement, blinking eyes, slight head movement",
             "duration": 5,
             "cfg_scale": 0.5
