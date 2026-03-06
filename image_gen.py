@@ -5,7 +5,6 @@ import os
 REPLICATE_API_TOKEN = os.environ.get("REPLICATE_API_TOKEN")
 
 async def generate_character(prompt: str) -> str:
-    """Generate cartoon character PNG using Flux-1.1-pro"""
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)
     output = client.run(
         "black-forest-labs/flux-1.1-pro",
@@ -21,7 +20,6 @@ async def generate_character(prompt: str) -> str:
     return str(output)
 
 async def generate_background(prompt: str) -> str:
-    """Generate background image using Flux-1.1-pro"""
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)
     output = client.run(
         "black-forest-labs/flux-1.1-pro",
@@ -37,22 +35,20 @@ async def generate_background(prompt: str) -> str:
     return str(output)
 
 async def remove_background(image_url: str) -> str:
-    """Remove background from character image"""
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)
     output = client.run(
-        "lucataco/remove-bg",
+        "851-labs/background-remover",
         input={"image": image_url}
     )
     return str(output)
 
 async def animate_character(image_url: str) -> str:
-    """Animate character using Kling"""
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)
     output = client.run(
-        "kwaivgi/kling-v2.1",
+        "kwaivgi/kling-v2.1-standard",
         input={
             "image": image_url,
-            "prompt": "character talking, subtle body movement, blinking eyes, slight head movement, natural idle animation",
+            "prompt": "character talking, subtle body movement, blinking eyes, slight head movement",
             "duration": 5,
             "cfg_scale": 0.5
         }
@@ -60,7 +56,6 @@ async def animate_character(image_url: str) -> str:
     return str(output)
 
 async def lip_sync(video_url: str, audio_url: str) -> str:
-    """Apply lip sync using LatentSync"""
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)
     output = client.run(
         "bytedance/latentsync",
@@ -72,7 +67,7 @@ async def lip_sync(video_url: str, audio_url: str) -> str:
     return str(output)
 
 async def download_file(url: str) -> bytes:
-    """Download file from URL"""
     async with httpx.AsyncClient() as client:
         response = await client.get(url, timeout=60)
         return response.content
+        
