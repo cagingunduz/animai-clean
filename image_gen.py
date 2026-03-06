@@ -37,8 +37,8 @@ async def generate_background(prompt: str) -> str:
 async def remove_background(image_url: str) -> str:
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)
     output = client.run(
-        "851-labs/background-remover",
-        input={"image": image_url}
+        "lucataco/remove-bg",
+        input={"image": image_url, "output_type": "rgba"}
     )
     return str(output)
 
@@ -70,4 +70,3 @@ async def download_file(url: str) -> bytes:
     async with httpx.AsyncClient() as client:
         response = await client.get(url, timeout=60)
         return response.content
-        
