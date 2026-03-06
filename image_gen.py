@@ -93,7 +93,7 @@ async def animate_character(image_url: str) -> str:
 async def lip_sync(video_url: str, audio_url: str) -> str:
     client = replicate.Client(api_token=REPLICATE_API_TOKEN)
     output = client.run(
-        "latentlabs/latentsync",
+        "bytedance/latentsync",
         input={
             "video": video_url,
             "audio": audio_url
