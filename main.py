@@ -19,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+ 
 class GenerateRequest(BaseModel):
     scene_text: str
     character_description: str
