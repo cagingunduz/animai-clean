@@ -15,7 +15,7 @@ async def generate_speech(text: str, voice_id: str) -> bytes:
     audio_bytes = b"".join(audio)
     return audio_bytes
 
-
+ 
 async def get_voices() -> list:
     client = ElevenLabs(api_key=os.environ.get("ELEVENLABS_API_KEY"))
     response = client.voices.get_all()
