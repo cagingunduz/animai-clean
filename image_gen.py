@@ -1,20 +1,18 @@
-import google.generativeai as genai
 import os
 import httpx
 import uuid
-import boto3
-from botocore.config import Config
-from PIL import Image
 import io
+import base64
+import boto3
+import replicate
+from botocore.config import Config
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+REPLICATE_API_TOKEN = os.environ.get("REPLICATE_API_TOKEN")
 R2_ACCOUNT_ID = os.environ.get("R2_ACCOUNT_ID")
 R2_ACCESS_KEY = os.environ.get("R2_ACCESS_KEY")
 R2_SECRET_KEY = os.environ.get("R2_SECRET_KEY")
 R2_BUCKET = os.environ.get("R2_BUCKET", "animai-videos")
 R2_PUBLIC_BASE = "https://pub-410f3488491a42f5a631e8944960bd55.r2.dev"
-
-genai.configure(api_key=GEMINI_API_KEY)
 
 
 def get_r2_client():
@@ -35,42 +33,58 @@ def upload_to_r2(image_bytes: bytes, folder: str, content_type: str = "image/png
     return f"{R2_PUBLIC_BASE}/{key}"
 
 
-async def generate_character_image(character_prompt: str) -> str:
-    """Adım 1: Beyaz bg'da karakter PNG üret, R2'ye yükle, URL dön."""
-    model = genai.GenerativeModel("gemini-2.0-flash-exp-image-generation")
+def _extract_url(output) -> str:
+    if output is None:
+        raise ValueError("Replicate returned None output")
+    if isinstance(output, list):
+        output = output[0]
+    if hasattr(output, 'url'):
+        return str(output.url)
+    return str(output)
 
-    response = model.generate_content(
-        character_prompt,
-        generation_config=genai.types.GenerationConfig(
-            response_mime_type="image/png"
-        )
+
+async def generate_character_image(character_prompt: str) -> str:
+    """Adim 2: Beyaz bg'da karakter PNG uret, R2'ye yukle, URL don."""
+    client = replicate.Client(api_token=REPLICATE_API_TOKEN)
+
+    output = client.run(
+        "google/gemini-2.5-flash-image",
+        input={
+            "prompt": character_prompt,
+            "aspect_ratio": "1:1",
+            "output_format": "png"
+        }
     )
 
-    image_bytes = response.candidates[0].content.parts[0].inline_data.data
-    url = upload_to_r2(image_bytes, "characters")
-    return url
+    image_url = _extract_url(output)
+
+    async with httpx.AsyncClient() as http:
+        resp = await http.get(image_url, timeout=60)
+        resp.raise_for_status()
+        image_bytes = resp.content
+
+    return upload_to_r2(image_bytes, "characters")
 
 
 async def generate_scene_image(scene_prompt: str, character_image_url: str) -> str:
-    """Adım 2: Karakter PNG'yi referans alarak sahne image üret."""
-    model = genai.GenerativeModel("gemini-2.0-flash-exp-image-generation")
+    """Adim 3: Karakter PNG'yi referans alarak sahne image uret."""
+    client = replicate.Client(api_token=REPLICATE_API_TOKEN)
 
-    # Karakter PNG'yi indir
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(character_image_url, timeout=60)
-        resp.raise_for_status()
-        char_bytes = resp.content
-
-    # PIL Image olarak aç
-    char_image = Image.open(io.BytesIO(char_bytes))
-
-    response = model.generate_content(
-        [scene_prompt, char_image],
-        generation_config=genai.types.GenerationConfig(
-            response_mime_type="image/png"
-        )
+    output = client.run(
+        "google/gemini-2.5-flash-image",
+        input={
+            "prompt": scene_prompt,
+            "image": character_image_url,
+            "aspect_ratio": "16:9",
+            "output_format": "png"
+        }
     )
 
-    image_bytes = response.candidates[0].content.parts[0].inline_data.data
-    url = upload_to_r2(image_bytes, "scenes")
-    return url
+    image_url = _extract_url(output)
+
+    async with httpx.AsyncClient() as http:
+        resp = await http.get(image_url, timeout=60)
+        resp.raise_for_status()
+        image_bytes = resp.content
+
+    return upload_to_r2(image_bytes, "scenes")
